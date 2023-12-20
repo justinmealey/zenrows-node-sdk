@@ -2,6 +2,7 @@
 import axios, { AxiosPromise, AxiosRequestConfig, Method } from 'axios';
 import axiosRetry from 'axios-retry';
 import * as fastq from 'fastq';
+import { omit } from 'lodash';
 
 import { VERSION } from './version';
 
@@ -13,13 +14,16 @@ interface ClientConfig {
 }
 interface Config {
     autoparse?: boolean;
+    antibot?: boolean;
     /* eslint-disable camelcase */
     css_extractor?: string;
     js_render?: boolean;
+    js_instructions?: string;
     premium_proxy?: boolean;
     proxy_country?: string;
     wait_for?: string;
     wait?: number;
+    timeout?: number;
     block_resources?: string;
     window_width?: number;
     window_height?: number;
@@ -34,7 +38,7 @@ interface Headers {
     [x: string]: string;
 }
 
-class ZenRows {
+export class ZenRows {
     readonly apiKey: string;
 
     readonly clientConfig: ClientConfig;
@@ -54,13 +58,31 @@ class ZenRows {
         return this.queue.push({ url, config, headers });
     }
 
-    public post(url: string, config?: Config, { headers = {}, data = {} }: { headers?: Headers, data?: any } = {}): AxiosPromise {
+    public post(
+        url: string,
+        config?: Config,
+        { headers = {}, data = {} }: { headers?: Headers; data?: any } = {}
+    ): AxiosPromise {
         return this.queue.push({ url, method: 'POST', config, headers, data });
     }
 
-    private worker({ url, method = 'GET', config, headers, data }: { url: string; method?: Method; config?: Config; headers: Headers, data?: any }): AxiosPromise {
+    private worker({
+        url,
+        method = 'GET',
+        config,
+        headers,
+        data,
+    }: {
+        url: string;
+        method?: Method;
+        config?: Config;
+        headers: Headers;
+        data?: any;
+    }): AxiosPromise {
+        const timeout = config?.timeout ? config.timeout : 120000;
+        const newConfig: Partial<Config> = omit(config, ['timeout']);
         const params = {
-            ...config,
+            ...newConfig,
             url,
             apikey: this.apiKey,
         };
@@ -69,11 +91,11 @@ class ZenRows {
             'User-Agent': `zenrows/${VERSION} node`,
             ...headers,
         };
-
         const axiosRequestConfig: AxiosRequestConfig = {
             baseURL: API_URL,
             method,
             params,
+            timeout,
             headers: finalHeaders,
             data,
         };
@@ -102,5 +124,6 @@ class ZenRows {
         }
     }
 }
-
-export { ZenRows };
+function omit(config: Config | undefined, arg1: string[]): Partial<Config> {
+    throw new Error('Function not implemented.');
+}
