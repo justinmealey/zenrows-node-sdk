@@ -124,6 +124,3 @@ export class ZenRows {
         }
     }
 }
-function omit(config: Config | undefined, arg1: string[]): Partial<Config> {
-    throw new Error('Function not implemented.');
-}
